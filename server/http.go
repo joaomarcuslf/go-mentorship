@@ -1,13 +1,11 @@
 package server
 
 import (
-	"net/http"
-
+	"github.com/gin-gonic/gin"
+	database "github.com/joaomarcuslf/qr-generator/database"
+	api "github.com/joaomarcuslf/qr-generator/handlers/api"
 	web "github.com/joaomarcuslf/qr-generator/handlers/web"
-	io "github.com/joaomarcuslf/qr-generator/services/io"
 )
-
-var cli *io.CLI = io.NewCLI()
 
 type Server struct {
 	Port string
@@ -20,13 +18,24 @@ func NewServer(port string) *Server {
 }
 
 func (a *Server) Run() {
-	fs := http.FileServer(http.Dir("./static"))
-	http.Handle("/static/", http.StripPrefix("/static/", fs))
+	database.NewDB()
+	defer database.Close()
 
-	http.HandleFunc("/", web.Home)
-	http.HandleFunc("/generator", web.GenerateQr)
+	router := gin.Default()
 
-	cli.Write("Server running on port: " + a.Port)
+	router.LoadHTMLGlob("templates/*")
+	router.Static("/static", "./static")
 
-	http.ListenAndServe(":"+a.Port, nil)
+	router.GET("/", web.Home)
+	router.POST("/generator", web.GenerateQr)
+
+	sc := api.NewSiteController()
+
+	router.GET("/api/sites", sc.List)
+	router.POST("/api/sites", sc.Create)
+	router.GET("/api/sites/:id", sc.Show)
+	router.PUT("/api/sites/:id", sc.Update)
+	router.DELETE("/api/sites/:id", sc.Delete)
+
+	router.Run(":" + a.Port)
 }

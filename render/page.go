@@ -2,7 +2,8 @@ package render
 
 import (
 	"net/http"
-	"text/template"
+
+	"github.com/gin-gonic/gin"
 )
 
 type Page struct {
@@ -30,7 +31,7 @@ func (page *Page) AsHome() *Page {
 	return page.SetMeta(
 		"QR Code Generator",
 		"A page to generate QR",
-		"templates/index.html",
+		"index.html",
 		http.StatusOK,
 	)
 }
@@ -42,18 +43,16 @@ func (page *Page) SetError(err error, status int) *Page {
 	return page
 }
 
-func (page *Page) Write(w http.ResponseWriter) *Page {
-	t, err := template.ParseFiles(page.Template)
-
-	if err != nil {
-		page.Status = http.StatusInternalServerError
-		http.Error(w, err.Error(), page.Status)
-
-		return page
-	}
-
-	w.WriteHeader(page.Status)
-	t.Execute(w, page)
+func (page *Page) Write(c *gin.Context) *Page {
+	c.HTML(
+		page.Status,
+		page.Template,
+		gin.H{
+			"Title":       page.Title,
+			"Description": page.Description,
+			"Error":       page.Error,
+		},
+	)
 
 	return page
 }
