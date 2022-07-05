@@ -1,0 +1,52 @@
+<html>
+<head>
+  <title>{{.Title}}</title>
+  <meta charset="utf-8" />
+  <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=6.0">
+
+  <meta name="description" content="{{.Description}}">
+  <meta property="og:description_safe" content="{{.Description}}" />
+
+  <link rel="stylesheet" type="text/css" href="/static/main.css" />
+</head>
+
+<body>
+  <section class="hero is-purple is-light is-fullheight">
+    <div class="hero-body">
+      <div class="container">
+        <div class="columns is-centered">
+          <div class="column is-8-tablet is-7-desktop is-7-widescreen">
+            <form action="/generator" method=post class="box">
+              <div class="field">
+                <label for="" class="label has-text-left">Please enter the string you want to QRCode.</label>
+
+                <div class="control">
+                  <input
+                    {{if .Error}}
+                      class="input is-danger"
+                    {{else}}
+                      class="input"
+                    {{end}}
+                    placeholder="e.g. www.google.com"
+                    name="dataString" />
+                </div>
+
+                {{if .Error}}
+                  <p class="help is-danger">{{.Error}}</p>
+                {{end}}
+              </div>
+
+              <div class="field has-text-right">
+                <button class="button is-purple is-rounded is-medium is-fullwidth">
+                  Submit
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</body>
+</html>

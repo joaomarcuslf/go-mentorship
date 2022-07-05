@@ -1,24 +1,24 @@
 package main
 
 import (
-	"os"
-
-	generator "github.com/joaomarcuslf/qr-generator/services/generators"
-	io "github.com/joaomarcuslf/qr-generator/services/io"
+	server "github.com/joaomarcuslf/qr-generator/server"
 )
 
 func main() {
-	file, err := os.Create("qrcode.png")
-	defer file.Close()
+	// file, err := os.Create("qrcode.png")
+	// defer file.Close()
 
-	if err != nil {
-		panic(err)
-	}
+	// if err != nil {
+	// 	panic(err)
+	// }
 
-	cli := io.NewCLI()
-	qr := generator.NewQRCode()
+	// cli := io.NewCLI()
+	// qr := generator.NewQRCode()
 
-	cli.Write("Enter your string: ")
+	// cli.Write("Enter your string: ")
 
-	qr.SetBarcode(cli.Read()).ToPNG(file)
+	// qr.SetBarcode(cli.Read()).ToPNG(file)
+
+	server := server.NewServer("8000")
+	server.Run()
 }

@@ -1,0 +1,23 @@
+@import "https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css";
+
+.is-purple, .is-purple.is-dark {
+  background-color: #5f163a;
+  color: #f7e8f0;
+}
+
+.is-purple.is-light {
+  background-color: #f7e8f0;
+  color: #551637;
+}
+
+button.is-purple {
+  background-color: #5f163a;
+  color: #f7e8f0;
+  transition: background-color 0.2s ease 0s;
+  transition: color 0.2s ease 0s;
+}
+
+button.is-purple:hover {
+  background-color: #d5a6bd;
+  color: #5f163a;
+}
