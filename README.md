@@ -14,155 +14,162 @@ Esse repositório parte do princípio que você já fez o [download e instalou o
 
 ## Objetivo da aula:
 
-### Primeiros passos
+### Recapitulando
 
-Vamos começar criando o nosso `main.go`, que será o nosso arquivo de entrada.
+Na aula anterior, nós criamos um código que recebia do usuário uma string, e criava um QR Code, porém nós deixamos nossa `main()` muito poluída, na nossa aula de hoje nós vamos criar refatorar nosso código seguindo a filosofia de manter o código mais limpo, e seguindo princípio de responsabilidade única.
+
+Vamos começar criando nossas pastas:
 
 ```bash
-touch main.go
+mkdir services
+
+mkdir services/generators
+touch services/generators/qrcode.go
+
+mkdir services/io
+touch services/io/cli.go
 ```
+
+### Lidando com IO
+
+Vamos trabalhar no aqruivo `touch services/io/cli.go`. A responsabilidade desse serviço será cuidar do IO da aplicação, apesar de óbvio, isso pode significar que ele será um logger em arquivo, um logger em CLI, ou qualquer outro tipo de log. Nessa aplicação por ser simples, ele irá ser um log em CLI, vamos começar a escrever nosso código.
+
+Não podemos, esquecer dos imports, e declaração do pacote.
+
+```go
+package services
+
+import "fmt"
+```
+
+Agora, talvez você não conheça esse tipo de declaração, mas se você está habituado com [OOP](https://en.wikipedia.org/wiki/Object-oriented_programming), você irá pegar rápido, mas basicamente nós iremos definir uma Struct, e dizer algumas funções que ela terá.
+
+```go
+type CLI struct{}
+
+func NewCLI() *CLI {
+	return &CLI{}
+}
+```
+
+Começamos declarando, o `Read`, que irá ler o input do usuário.
+
+```go
+func (io *CLI) Read() string {
+	var input string
+	fmt.Scanln(&input)
+
+	return input
+}
+```
+
+E agora, o `Write`, que irá escrever o output para o usuário.
+
+```go
+func (io *CLI) Write(output string) {
+	fmt.Println(output)
+}
+```
+
+### Criando um QR Code
+
+Vamos trabalhar no aqruivo `touch services/generators/qrcode.go`.
+
+Vamos seguir mais ou menos a mesma ideia do IO.
+
+```go
+package services
+
+import (
+	"fmt"
+	"image/png"
+	"io"
+
+	"github.com/boombuler/barcode"
+	"github.com/boombuler/barcode/qr"
+)
+
+type QRCode struct {
+	barcode *barcode.Barcode
+	width   int
+	height  int
+}
+
+func NewQRCode() *QRCode {
+	return &QRCode{
+		width:  200,
+		height: 200,
+	}
+}
+```
+
+Agora vamos declarar dois métodos, `SetBarcode`, e `ToPNG`.
+
+A ideia, do `SetBarcode`, é utilizando nossa struct armazenar o Barcode, e facilitar a escrita desse barcode eventualmente num PNG, ou em qualquer outro formato.
+
+```go
+func (generator *QRCode) SetBarcode(input string) *QRCode {
+	qrCode, err := qr.Encode(input, qr.M, qr.Auto)
+
+	if err != nil {
+		return generator
+	}
+
+	qrCode, err = barcode.Scale(qrCode, generator.width, generator.height)
+
+	if err != nil {
+		return generator
+	}
+
+	generator.barcode = &qrCode
+
+	return generator
+}
+```
+
+Já o `ToPNG`, ele irá escrever o PNG dado um IO Writer.
+
+```go
+func (generator *QRCode) ToPNG(w io.Writer) error {
+	if generator.barcode == nil {
+		return fmt.Errorf("barcode is nil")
+	}
+
+	err := png.Encode(w, *generator.barcode)
+
+	return err
+}
+```
+
+Vamos ver na prática como vai ficar nosso `main.go`:
 
 ```go
 package main
 
 import (
-    "fmt"
-)
-
-func main() {
-    fmt.Println("Hello, world!")
-}
-```
-
-O `main.go` como você já deve saber, é o arquivo principal de todo projeto em Go, ele inicia a execução do programa. Porém, como o Go é baseado em pacotes, temos que declarar o pacote `main` e logo depois importamos o pacote `fmt` para que possamos usar o mostrar como output do terminal uma mensagem.
-
-Você pode ver seu código funcionando com:
-
-```bash
-go run main.go
-```
-
-Agora, com isso, nós escrevemos nosso primeiro programa, e ainda que básico, será o nossa base para nossas próximas aulas, e no fim, você irá se surpreender com como ele vai ficar.
-
-### Adicionando Barcode
-
-Vamos desenvolver essa sessão utilizando a lib mais importante desse projeto: [boombuler/barcode](github.com/boombuler/barcode).
-
-Com essa lib nós iremos criar QR codes com base em uma [string](https://pkg.go.dev/strings) provida pelo usuário.
-
-Para começar, vamos instalar a lib com:
-
-```bash
-go get github.com/boombuler/barcode
-```
-
-E para você importar a lib no nosso `main.go`, mude o import para seguir esse modelo:
-
-```go
-import (
-    "image/png"
 	"os"
 
-	"github.com/boombuler/barcode"
-	"github.com/boombuler/barcode/qr"
-)
-```
-
-Se você estiver usando vscode, você pode clicar com `Option + Click`, ou `Alt + Click` para entender o que cada um dessas libs fazem, e como usar cada uma delas. Não é o propósito desse tutorial.
-
-Depois de atualizar os imports, vamos para a função `func main()`, limpe o conteúdo dela, e vamos escrever parte por parte.
-
-```go
-input := "Hello, world!"
-
-qrCode, err := qr.Encode(input, qr.M, qr.Auto)
-```
-
-Temos um `input`, que é a string que queremos que o QR code seja gerado, e um `err`, que é um possível erro que ocorreu ao gerar o QR code. Um padrão para lidar com erros no Go é com essa estrutura simples:
-
-```go
-if err != nil {
-    panic(err)
-}
-```
-
-Caso não tenha erro, nossa variável `qrCode` será gerada corretamente, porém precisamos definir uma dimensão para ela, para isso, vamos usar a função `barcode.Scale` que irá definir a dimensão do QR code de acordo com a string que foi passada.
-
-```go
-qrCode, err = barcode.Scale(qrCode, 200, 200)
-```
-
-A linha anterior sobreescreveu os valores de `qrCode` com a nova dimensão, e `err`. Como essa função também pode causar um erro, você dever repetir o `if` anterior que fizemos (sim, essa estrutura será repetida muitas vezes em um código).
-
-A partir de agora, sempre que você vir um `err`, parta do princípio que você deve colocar um `if` para tratar o erro, eu só irei comentar quando ou o tratamento for diferente de um panic, ou não precisar ter nenhum.
-
-Beleza, com isso, vamos criar um arquivo para sarvar nosso QR code, e vamos salvar ele como `qr.png`:
-
-```go
-file, err := os.Create("qrcode.png")
-defer file.Close()
-```
-
-`defer` é uma palavra chave que é utilizada para que o código seja executado no final do código, ou seja, depois que o código foi executado.
-
-Agora, é só salvar o arquivo:
-
-```go
-png.Encode(file, qrCode)
-```
-
-Esse padrão que o `Encode` está utilizando, onde nós passamos como primeiro local/arquivo que siga uma interface `io.Writer` como parâmetro, e segundo argumento o que queremos escrever, é muito comum no Go, e sempre que ela se repetir eu irei comentar sobre.
-
-Vamos ver se o código funcionou:
-
-```bash
-go run main.go
-```
-
-Com o fim desse código, você devve ver um arquivo `qrcode.png`, e se você ler o arquivo, você vai ver um QR code com a string que você passou.
-
-### Recebendo input do usuário
-
-Bom, é bem sem graça você ter uma string estática sempre, então nós vamos receber input do usuário.
-
-Você precisará atualizar os imports, e modificar a lina que você declarou o `input` para:
-
-```go
-import (
-    "fmt"
-    /* ... */
+	generator "github.com/joaomarcuslf/qr-generator/services/generators"
+	io "github.com/joaomarcuslf/qr-generator/services/io"
 )
 
 func main() {
-	var input string
+	file, err := os.Create("qrcode.png")
+	defer file.Close()
 
-	fmt.Println("Enter your string: ")
-	fmt.Scanln(&input)
+	if err != nil {
+		panic(err)
+	}
 
-    /* ... */
+	cli := io.NewCLI()
+	qr := generator.NewQRCode()
+
+	cli.Write("Enter your string: ")
+
+	qr.SetBarcode(cli.Read()).ToPNG(file)
 }
-```
-
-Vamos ver se o código funcionou:
-
-```bash
-go run main.go
 ```
 
 ### Concluindo
 
-Bom, seu código já está funcionando, e você consegue facilmente gerar um QR code com a string que você passou. Nas próximas aulas nós vamos refatorar nosso código para que nossa `main()` fique mais limpa.
-
-
-## Adicionais:
-
-- [GoLang: Tipos de dados](https://golang.org/ref/spec#Types)
-- [GoLang: Operadores](https://golang.org/ref/spec#Operators)
-- [GoLang: Expressões](https://golang.org/ref/spec#Expressions)
-- [Extensão Golang vscode](https://marketplace.visualstudio.com/items?itemName=golang.Go)
-
-Se, você estiver usando, e é recomendado que estja, utilizando Git, não se esqueça de atualizar o seu `.gitignore`, e colocar lá dentro a seguinte linha:
-
-```
-qrcode.png
-```
+Nessa aula nós só refatoramos o código, na próxima nós vamos adicionar um servidor HTTP, e vamos mudar os inputs, e outputs para algo mais interessante.
