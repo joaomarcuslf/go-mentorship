@@ -1,0 +1,18 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+          "command": "air server --port 8000",
+          "name": "Live Reload Server",
+          "request": "launch",
+          "type": "node-terminal"
+        },
+        {
+            "name": "Launch Package",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceFolder}"
+        }
+    ]
+}
