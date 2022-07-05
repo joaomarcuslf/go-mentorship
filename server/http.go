@@ -24,6 +24,7 @@ func (a *Server) Run() {
 	http.Handle("/static/", http.StripPrefix("/static/", fs))
 
 	http.HandleFunc("/", web.Home)
+	http.HandleFunc("/generator", web.GenerateQr)
 
 	cli.Write("Server running on port: " + a.Port)
 

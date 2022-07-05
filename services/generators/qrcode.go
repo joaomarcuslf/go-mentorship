@@ -23,6 +23,10 @@ func NewQRCode() *QRCode {
 }
 
 func (generator *QRCode) SetBarcode(input string) *QRCode {
+	if input == "" {
+		return generator
+	}
+
 	qrCode, err := qr.Encode(input, qr.M, qr.Auto)
 
 	if err != nil {
@@ -42,7 +46,7 @@ func (generator *QRCode) SetBarcode(input string) *QRCode {
 
 func (generator *QRCode) ToPNG(w io.Writer) error {
 	if generator.barcode == nil {
-		return fmt.Errorf("barcode is nil")
+		return fmt.Errorf("invalid input provided")
 	}
 
 	err := png.Encode(w, *generator.barcode)

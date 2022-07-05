@@ -2,27 +2,21 @@ package handlers
 
 import (
 	"net/http"
-	"text/template"
+
+	render "github.com/joaomarcuslf/qr-generator/render"
+	generator "github.com/joaomarcuslf/qr-generator/services/generators"
 )
 
-type Page struct {
-	Title       string
-	Description string
-	Error       string
+func Home(w http.ResponseWriter, r *http.Request) {
+	render.NewPage().AsHome().Write(w)
 }
 
-func Home(w http.ResponseWriter, r *http.Request) {
-	p := Page{
-		Title:       "QR Code Generator",
-		Description: "A page to generate QR",
-	}
+func GenerateQr(w http.ResponseWriter, r *http.Request) {
+	qr := generator.NewQRCode()
 
-	t, err := template.ParseFiles("templates/index.html")
+	err := qr.SetBarcode(r.FormValue("dataString")).ToPNG(w)
 
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+		render.NewPage().AsHome().SetError(err, http.StatusBadRequest).Write(w)
 	}
-
-	t.Execute(w, p)
 }
