@@ -14,295 +14,413 @@ Esse repositório parte do princípio que você já fez o [download e instalou o
 
 ## Objetivo da aula:
 
-### Adicionando Gin
+### Expectativas
 
-A lib Gin é uma lib muito produtiva para escrever aplicações Web, e como ela tem uma escrita muito próxima ao Express do Node, me agrada muito, então será ela que iremos utilizar.
+Nessa aula vamos colocar React para rodar junto ao nosso projeto, e iremos adaptar nossa API para que ela seja consumida pelo nosso Front-end em React.
 
-Primeiro rode:
+### O que você precisa?
 
-```bash
-go get github.com/gin-gonic/gin
-```
+Você vai precisar ter NodeJS instalado, eu estou utilizando a versão `v17.0.1`, porém consulte a página dos módulos que utilizarmos para verificar compatibilidade. E também estou utilizando o `yarn` para rodar os comandos.
 
-Isso deve atualizar ambos seus `go.mod` e `go.sum` para incluir a lib `gin`. Em seguida vamos fazer as adaptações necessárias para nossa aplicação.
+### Criando nosso projeto
 
-Vamos para o `render/page.go`, nesse arquivo nós vamos mudar principalmente a função Write, pois agora ao invés de usarmos o `ResponseWriter`, vamos usar o render do `Gin`, e também vamos remover o prefixo `templates/` do nosso `AsHome`, também porque o `Gin` já lida com isso.
-
-```go
-package render
-
-import (
-	"net/http"
-
-	"github.com/gin-gonic/gin"
-)
-
-/* ... */
-
-func (page *Page) AsHome() *Page {
-	return page.SetMeta(
-		"QR Code Generator",
-		"A page to generate QR",
-		"index.html",
-		http.StatusOK,
-	)
-}
-
-/* ... */
-
-func (page *Page) Write(c *gin.Context) *Page {
-	c.HTML(
-		page.Status,
-		page.Template,
-		gin.H{
-			"Title":       page.Title,
-			"Description": page.Description,
-			"Error":       page.Error,
-		},
-	)
-
-	return page
-}
-```
-
-No `handlers/html.go`, nós vamos basicamente trocar o `w http.ResponseWriter, r *http.Request` pelo `c *gin.Context`, e perceba que mudamos um pouco a forma que pegamos o dado do form, e a forma que escrevemos enviamos o Writer:
-
-```go
-package handlers
-
-import (
-	"net/http"
-
-	"github.com/gin-gonic/gin"
-	render "github.com/joaomarcuslf/qr-generator/render"
-	generator "github.com/joaomarcuslf/qr-generator/services/generators"
-)
-
-func Home(c *gin.Context) {
-	render.NewPage().AsHome().Write(c)
-}
-
-func GenerateQr(c *gin.Context) {
-	qr := generator.NewQRCode()
-
-	err := qr.SetBarcode(c.PostForm("dataString")).ToPNG(c.Writer)
-
-	if err != nil {
-		render.NewPage().AsHome().SetError(err, http.StatusBadRequest).Write(c)
-	}
-}
-```
-
-Já no `server/http.go`, é onde teremos uma mudança maior, mas vamos por partes:
-
-```go
-package server
-
-import (
-	"github.com/gin-gonic/gin"
-	web "github.com/joaomarcuslf/qr-generator/handlers/web"
-)
-
-/* ... */
-
-func (a *Server) Run() {
-  router := gin.Default()
-
-	router.LoadHTMLGlob("templates/*")
-	router.Static("/static", "./static")
-
-	router.GET("/", web.Home)
-	router.POST("/generator", web.GenerateQr)
-
-  router.Run(":" + s.Port)
-}
-```
-
-Nós tiramos o IO, já que não é mais necessário.
-
-- `router.LoadHTMLGlob("templates/*")`: Aqui nós estamos declarando qual nossa pasta de templates.
-- `router.Static("/static", "./static")`: Aqui nós estamos declarando qual nossa pasta de arquivos estáticos.
-- `router.GET("/", web.Home)`: Aqui nós estamos declarando o endpoint `/`, que é o endpoint que vai ser chamado quando o usuário acessar a página inicial.
-- `router.POST("/generator", web.GenerateQr)`: Aqui nós estamos declarando o endpoint `/generator`, que é o endpoint que vai ser chamado quando o usuário acessar a página de geração de QR.
-
-> E perceba que agora nós diferenciamos quando é um GET de um POST.
-
-Com isso nós refatoramos nosso servidor para algo mais próximo de um servidor do mundo real.
-
-A partir daqui, nós iremos criar um Banco de Dados dummy, para escrevermos uma API, então se torna 100% opicional seguir.
-
-### Dummy DB
-
-Nós vamos implementar um Dummy DB em JSON, e vamos utilizar a [Design Pattern Singleton](https://refactoring.guru/pt-br/design-patterns/singleton), assim ao invés de abrirmos várias instâncias para ler o arquivo JSON, nós vamos reaproveitar a instância anterior.
+Abra um terminal dentro do nosso projeto, e rode:
 
 ```bash
-mkdir services/readers
-touch services/readers/json.go
+yarn create react-app  qr-generator
 ```
 
-Vamos preencher nosso `services/readers/json.go` com os seguintes métodos:
+O comando irá demorar um pouco para rodar, enquanto isso vamos preparar outros aquivos.
 
-```go
-package services
+#### Rodando com o VSCode
 
-import (
-	"encoding/json"
-	"io/ioutil"
-	"os"
-)
+Se você seguiu o tutorial inteiro, você deve estar rodando o projeto pelo VSCode, e agora nós podemos rodar em paralelo tanto o Front-end quando o Back-end. Abra o `.vscode/launch.json`, e modifique ela para ficar assim.
 
-func Read(path string) ([]byte, error) {
-	jsonFile, err := os.Open(path)
-	if err != nil {
-		return nil, err
-	}
-	defer jsonFile.Close()
-
-	byteValue, err := ioutil.ReadAll(jsonFile)
-
-	return byteValue, err
-}
-
-func Save(path string, data interface{}) {
-	file, err := json.MarshalIndent(data, "", " ")
-
-	if err != nil {
-		panic(err)
-	}
-	err = ioutil.WriteFile(path, file, 0644)
-
-	if err != nil {
-		panic(err)
-	}
+```json
+{
+    "version": "0.2.0",
+    "compounds": [
+      {
+        "name": "Launch Full Application",
+        "configurations": ["Launch Application (Go)", "Launch Application (Node)"],
+        "stopAll": true
+      }
+    ],
+    "configurations": [
+      {
+        "name": "Launch Application (Node)",
+        "command": "npm start",
+        "request": "launch",
+        "type": "node-terminal",
+      },
+      {
+        "name": "Launch Application (Go)",
+        "command": "air server --port 8000",
+        "request": "launch",
+        "type": "node-terminal"
+      }
+    ]
 }
 ```
 
-Agora vamos ver como vamos utilizar esses métodos de forma mais eficaz.
+Com isso na aba `Run and Debug`, você verá a opção de rodar com `Launch Full Application`, isso conclui essa etapa.
+
+#### Atualizando o Air
+
+Abra o `.air.toml`, e vamos adicionar os arquivos de Front-end para ele ignorar quando tiverem atualizações.
+
+```toml
+[build]
+  /* ... */
+  exclude_dir = ["static", "tmp", "vendor", "testdata", "node_modules", "src"]
+  /* ... */
+```
+
+Você também deve atualizar o `.gitignore`:
 
 ```bash
-mkdir database
-touch database/db.go
-
-touch ./db.json
-echo '{"Sites": []}' >> ./db.json
+qrcode.png
+tmp/*
+db.json
+/node_modules
+.pnp*
+/coverage
+/build
+.env.*
+*-debug.log*
 ```
 
-Vamos preencher nosso `database/db.go` com os seguintes métodos:
+#### Copiando arquivos
 
-```go
-package database
+Até aqui, o `yarn create` já deve ter terminado, e sim, vamos copiar os arquivos de dentro dessa past para a raiz do projeto.
 
-import (
-	"encoding/json"
-	"fmt"
-	"math/rand"
+```bash
+mv ./qr-generator/public ./
+mv ./qr-generator/node_modules ./
+mv ./qr-generator/package.json ./
 
-	json_reader "github.com/joaomarcuslf/qr-generator/services/readers"
-)
+mkdir src
 
-type Site struct {
-	URL string
-	Id  string
+mv ./qr-generator/src/setupTest.js ./src/setupTest.js
+
+rm -rf ./qr-generator/
+```
+
+Com isso seu projeto já deve estar pronto, vá para próxima seção e vamos começar a preencher nosso código.
+
+### Fetcher
+
+Nós vamos escrever um componente que será responsável por fazer requisições HTTP e enviar os dados para os componentes filhos. Rode no seu terminal:
+
+```bash
+mkdir src/fetcher
+touch src/fetcher/fetcher.jsx
+```
+
+Abra `src/fetcher/fetcher.jsx` e vamos preenchendo juntos.
+
+```jsx
+import { useState, useEffect } from "react"
+
+const Fetcher = ({ children, action }) => {
+  const [loading, setLoading] = useState(true)
+  const [data, setData] = useState(null)
+  const [error, setError] = useState(null)
+```
+
+Até aqui, estamos apenas declarando as props do nosso Fetcher, e seus estados iniciais. Nós vamos fazer uso do `useEffect` para fazer a requisição HTTP assim que o componente renderizar.
+
+```jsx
+  useEffect(() => {
+    const loadData = async () => {
+      setLoading(true)
+      try {
+        const response = await action()
+        const data = await response.json()
+
+        setData(data)
+      } catch (error) {
+        setError(error?.message)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadData()
+  }, [action])
+```
+
+Esse `useEffect` nos diz que ele tentará carregar os dados, e fará o controle do `result`, `error`, e `loading` conforme temos atualizações desses estados. E daqui para frente iremos só retornar com base em cada estado.
+
+```jsx
+if (loading) {
+    return <div>Loading...</div>
+  }
+
+  if (error) {
+    return <div>{error}</div>
+  }
+
+  return children(data)
 }
 
-type DB struct {
-	Sites []Site
-}
+export default Fetcher
+```
 
-var instance *DB
-var file string = "./db.json"
+Espero que não tenha ficado muito abstrato por hora, vai ficar mais claro quando implementarmos o resto do nosso código. Abra o terminal, nós vamos trabalhar aqui em fazer o componente que vai receber a listagem de sites.
 
-func NewDB() *DB {
-	if instance == nil {
-		byteValue, err := json_reader.Read(file)
+```bash
+mkdir src/sites
+touch src/sites/list.jsx
+```
 
-		if err != nil {
-			panic(err)
-		}
+Abra o `sites/list.jsx`, e vamos preencher eles juntos.
 
-		var db DB
+```jsx
+import React from "react"
 
-		json.Unmarshal(byteValue, &db)
+const SitesList = (props) => {
+  const { sites = [] } = props?.data || {}
+```
 
-		instance = &db
-	}
+Até aqui, coisa simples, nós esperamos um array de sites, e vamos ou retornar uma lista, ou uma mensagem dizendo que não temos sites.
 
-	return instance
-}
+```jsx
+  return (
+    <div>
+      <h2>Sites:</h2>
 
-func Close() {
-	fmt.Println("closing database")
-	if instance != nil {
-		fmt.Println("Creating database file")
-		json_reader.Save(file, instance)
-	}
-}
-
-func (db *DB) Save() {
-	if instance != nil {
-		json_reader.Save(file, instance)
-	}
-}
-
-func (db *DB) Add(url string) {
-	min := 10
-	max := 9999
-
-	id := fmt.Sprintf("%d", rand.Intn(max-min)+min)
-
-	db.Sites = append(db.Sites, Site{
-		URL: url,
-		Id:  id,
-	})
-
-	db.Save()
-}
-
-func (db *DB) Get(id string) (Site, error) {
-	for _, site := range db.Sites {
-		if site.Id == id {
-			return site, nil
-		}
-	}
-
-	return Site{}, fmt.Errorf("no site found, with id: %s", id)
-}
-
-func (db *DB) GetAll() []Site {
-	return db.Sites
-}
-
-func (db *DB) Update(id, url string) {
-	for i, site := range db.Sites {
-		if site.Id == id {
-			db.Sites[i].URL = url
-		}
-	}
-
-	db.Save()
-}
-
-func (db *DB) Remove(id string) {
-	for i, site := range db.Sites {
-		if site.Id == id {
-			db.Sites = append(db.Sites[:i], db.Sites[i+1:]...)
-			return
-		}
-	}
-
-	db.Save()
+      {sites?.length === 0 && <p>No sites</p>}
+      <ul>
+        {sites.map((site, index) => (
+          <li key={`${site.URL}-${site.id}-${index}`}>{site.URL}</li>
+        ))}
+      </ul>
+    </div>
+  )
 }
 ```
 
-Dê uma analisada no código, o nosso objetivo não é aprender tudo sobre, porém esse é uma forma de lidar com JSON. Agora abra `server/http.go`:
+Agora, vamos trabalhar a `action` que o `Fetcher` vai receber.
+
+```jsx
+SitesList.action = () => {
+  return fetch("http://localhost:8000/api/sites", {
+    credentials: "omit",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    method: "GET",
+    mode: "cors",
+  })
+}
+```
+
+Estaremos utilizando [fetch](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch), pois é o padrão recomendado para requisições HTTP. E por fim, vamos exportar o componente.
+
+```jsx
+export default SitesList
+```
+
+> A partir daqui, você já deve ter percebido que eu estou utilizando os nomes em minúsculo, e o CRA usa o padrão PascalCase. Eu prefiro a convenção de arquivos em minúsculo, mas você pode mudar isso se quiser.
+> Outra coisa que você talvez já tenha percebido, é que tem arquivos com o final `test.js`, nós vamos escrever testes pros nossos arquivos, mas eu não vou me aprofundar em conteúdos de teste, pelo menos não por hora.
+
+Abra um terminal e rode o seguinte comando:
+
+```bash
+touch src/sites/list.test.jsx
+```
+
+Abra o `src/sites/list.test.jsx`, e preencha comigo:
+
+```jsx
+/* eslint-disable testing-library/no-node-access */
+/* eslint-disable testing-library/no-container */
+import React from 'react'
+import { render, screen } from '@testing-library/react'
+import SitesList from './list'
+
+describe('<SitesList />', () => {
+```
+
+Sim, eu adicionei algumas regras que ignoram warnings do Eslint, você pode colocar num arquivo separado, eu deixei aqui mais para simplicidade.
+
+O `describe` agrupa nossos testes, pense como se estivéssemos descrevendo determinado componente. E vamos começar com cada situação, a primeira é o componente não tendo uma lista para renderizar.
+
+```jsx
+  test('renders an empty list', () => {
+    render(<SitesList />)
+
+    const element = screen.getByText(/No sites/i)
+
+    expect(element).toBeInTheDocument()
+  })
+```
+
+Próxima condição seria tendo múltiplos elemento, e vamos testar isso.
+
+```jsx
+  test('renders an list with multiple elements', () => {
+    const { container } = render(<SitesList data={{sites: [ { URL: "test" }, { URL: "test" } ,{ URL: "test" } ]}} />)
+
+    const element = container.querySelectorAll('li')
+
+    expect(element.length).toBe(3)
+  })
+})
+```
+
+Sei que pode parecer bobo, porém esses testes são cruciais para quando formos adicionar opção de editar, e remover sites. E aproveitando a vibe, vamos testar o `fetcher`?
+
+```bash
+touch src/fetcher/fetcher.test.jsx
+```
+
+No arquivo `fetcher/fetcher.test.jsx` vamos lidar com testes assíncronos, você pode se aprofundar mais na documentação de cada método, porém iremos utilizar a seguinte estrutura:
+
+- `action: MockedPromise<>`
+- `WaitFor`
+- `Expect`
+
+Vamos ver na prática:
+
+```jsx
+/* eslint-disable testing-library/prefer-query-by-disappearance */
+/* eslint-disable testing-library/no-unnecessary-act */
+import React from 'react'
+import { render, screen, waitFor, waitForElementToBeRemoved, act } from '@testing-library/react'
+import Fetcher from './fetcher'
+
+describe('<Fetcher />', () => {
+```
+
+Até agora nada atípico, certo? Primeiro teste será o de loading:
+
+```jsx
+  test('> loading: should call action function', async () => {
+    const action = jest.fn(() => Promise.resolve({ json: () => Promise.resolve({ info: "test loading" }) }))
+
+    render(
+      <Fetcher action={action}>
+        {(data) => <div>{data.info}</div>}
+      </Fetcher>
+    )
+
+    await waitFor(() => expect(action).toBeCalled())
+
+    expect(action).toBeCalled()
+  })
+```
+
+Perceba que utilizamos os `jest` para mockar uma response, chamamos o render normal, e utilizamos o `await waitFor` para esperar que a função `action` seja chamada, pelo menos uma vez, e em seguida fazemos o teste de que a função `action` foi chamada.
+
+Para o Error, e Success, eles seguem uma estrutura muito parecida:
+
+```jsx
+test('> error: should show error', async () => {
+    const action = jest.fn(() => Promise.resolve({ json: () => Promise.reject({ message: "test error" }) }))
+
+    act(() => {
+      render(
+        <Fetcher action={action}>
+          {(data) => <div>{data.info}</div>}
+        </Fetcher>
+      )
+    })
+
+    await waitForElementToBeRemoved(() => screen.getByText(/Loading/i))
+
+    await screen.findByText(/test error/i)
+  })
+```
+
+Porém, para esse cenário, não basta apenas a action ser chamada, o Loading tem que sair da tela, então nós esperamos pelo elemento ser removido. O success seria a mesma coisa, porém trocando `reject` por `resolve`.
+
+```tsx
+test('> success: should show the content', async () => {
+    const action = jest.fn(() => Promise.resolve({ json: () => Promise.resolve({ info: "test success" }) }))
+
+    act(() => {
+      render(
+        <Fetcher action={action}>
+          {(data) => <div>{data.info}</div>}
+        </Fetcher>
+      )
+    })
+
+
+    await waitForElementToBeRemoved(() => screen.getByText(/Loading/i))
+
+    await screen.findByText(/test success/i)
+  })
+})
+```
+
+Com isso, você já entendeu como vai funcionar testes assíncronos, teste síncronos, e de quebra, você também viu como é a assinatura do nosso componente. Vamos agora fazer tudo renderizar.
+
+```bash
+touch src/app.jsx
+touch src/index.jsx
+```
+
+Abra o `src/app.jsx`, e vamos importar ambos o Fetcher e o SitesList, e renderizar:
+
+```jsx
+import Fetcher from './fetcher/fetcher'
+import SiteList from './sites/list'
+
+function App() {
+  return (
+    <div className="App">
+      <Fetcher action={SiteList.action}>
+        {(data) => {
+          return (
+            <SiteList data={data} />
+          )
+        }}
+      </Fetcher>
+    </div>
+  )
+}
+
+export default App
+```
+
+Depois, abra o `src/index.jsx` para chamarmos o nosso App na DOM:
+
+```jsx
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import App from './app';
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
+);
+```
+
+Se você seguiu o tutorial até aqui, você pode abrir o [http://localhost:3000](http://localhost:3000) e ver o resultado.
+
+Você deve abrir as ferramentas de desenvolvedor do seu navegador, lá você verá que a requisição deu errado por conta do CORS, nó vamos resolver isso agora.
+
+> Veja mais sobre o CORS [aqui](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS).
+
+### Resolvendo o CORS
+
+Resolver CORS costuma ser algo que atormenta muitos desenvolvedores, porém a solução costuma também ser simples. Rode o comando no terminal.
+
+```bash
+go get github.com/gin-contrib/cors
+```
+
+Em seguida, abra o `server/http.go`, e adicione o módulo de CORS:
 
 ```go
-package server
-
 import (
-	"github.com/gin-gonic/gin"
-	database "github.com/joaomarcuslf/qr-generator/database"
-	web "github.com/joaomarcuslf/qr-generator/handlers/web"
+	"github.com/gin-contrib/cors"
+	/* ... */
 )
 
 /* ... */
@@ -311,149 +429,13 @@ func (a *Server) Run() {
 	database.NewDB()
 	defer database.Close()
 
-	/* ... */
-}
+	router := gin.Default()
+	router.Use(cors.Default())
+  /* ... */
 ```
 
-Agora que temos nosso DB rodando, vamos abrir o `handlers/web/html.go` e vamos salvar executar um `.Add` sempre que quisermos salvar um novo site.
+Prontinho, com isso seu Front-end já deve estar funcionando, e mostrando pelo menos uma lista básica de Sites.
 
-```go
-package handlers
+Nas próximas aulas, nós vamos fazer o Front-end enviar POST, DELETE, e PUT para o Back-end, nesse meio tempo, que tal você entender o que fizemos no Front-end de forma mais profunda?
 
-import (
-	"net/http"
-
-	"github.com/gin-gonic/gin"
-	database "github.com/joaomarcuslf/qr-generator/database"
-	render "github.com/joaomarcuslf/qr-generator/render"
-	generator "github.com/joaomarcuslf/qr-generator/services/generators"
-)
-
-var db *database.DB = database.NewDB()
-
-func Home(c *gin.Context) {
-	render.NewPage().AsHome().Write(c)
-}
-
-func GenerateQr(c *gin.Context) {
-	qr := generator.NewQRCode()
-
-	input := c.PostForm("dataString")
-
-	db.Add(input)
-
-	err := qr.SetBarcode(input).ToPNG(c.Writer)
-
-	if err != nil {
-		render.NewPage().AsHome().SetError(err, http.StatusBadRequest).Write(c)
-	}
-}
-```
-
-Se você abrir sua aplicação agora, e gerar um QR code, você vai ver que o `db.json` foi atualizado com novos valores. Com isso vamos criar uma mini-api que possa retornar todos os Sites, e permita edição e deletar.
-
-### Preenchendo nossa API:
-
-Vamos escrever uma API:
-
-```bash
-mkdir handlers/api
-touch handlers/api/sites.go
-```
-
-Abra o `handlers/api/sites.go` e vamos preencher com os seguintes métodos:
-
-```go
-package handlers
-
-import (
-	"github.com/gin-gonic/gin"
-	database "github.com/joaomarcuslf/qr-generator/database"
-)
-
-type SiteController struct {
-	db *database.DB
-}
-
-func NewSiteController() *SiteController {
-	return &SiteController{
-		db: database.NewDB(),
-	}
-}
-
-func (sc *SiteController) List(c *gin.Context) {
-	c.JSON(200, gin.H{
-		"sites": sc.db.GetAll(),
-	})
-}
-
-func (sc *SiteController) Create(c *gin.Context) {
-	site := &database.Site{}
-	c.BindJSON(site)
-
-	sc.db.Add(site.URL)
-
-	c.JSON(204, gin.H{})
-}
-
-func (sc *SiteController) Show(c *gin.Context) {
-	id := c.Param("id")
-
-	site, err := sc.db.Get(id)
-
-	if err != nil {
-		c.JSON(404, gin.H{
-			"error": err.Error(),
-		})
-		return
-	}
-
-	c.JSON(200, gin.H{
-		"site": site,
-	})
-}
-
-func (sc *SiteController) Update(c *gin.Context) {
-	id := c.Param("id")
-
-	var site database.Site
-
-	c.BindJSON(&site)
-
-	sc.db.Update(id, site.URL)
-
-	c.JSON(204, gin.H{})
-}
-
-func (sc *SiteController) Delete(c *gin.Context) {
-	id := c.Param("id")
-
-	sc.db.Remove(id)
-
-	c.JSON(200, gin.H{
-		"message": "Site deleted",
-	})
-}
-```
-
-E vamos atualizar nosso `server/http.go` para chamar nosso `SiteController`:
-
-```go
-func (a *Server) Run() {
-	/* ... */
-
-	sc := api.NewSiteController()
-
-	router.GET("/api/sites", sc.List)
-	router.POST("/api/sites", sc.Create)
-	router.GET("/api/sites/:id", sc.Show)
-	router.PUT("/api/sites/:id", sc.Update)
-	router.DELETE("/api/sites/:id", sc.Delete)
-
-	router.Run(":" + a.Port)
-}
-```
-
-> Caso você não esteja entendendo esses nomes, isso é um padrão REST de APIs, você pode ver um pouco mais sobre [aqui](https://en.wikipedia.org/wiki/Representational_state_transfer)
-
-Com isso você tem ambos um WEB App, e uma API, na próxima aula nós vamos introduzir o React para consumir a API. Espero você na próxima aula.
+Aguardo na próxima aula.
