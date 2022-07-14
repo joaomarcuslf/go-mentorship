@@ -1,18 +1,24 @@
 {
     "version": "0.2.0",
+    "compounds": [
+      {
+        "name": "Launch Full Application",
+        "configurations": ["Launch Application (Go)", "Launch Application (Node)"],
+        "stopAll": true
+      }
+    ],
     "configurations": [
-        {
-          "command": "air server --port 8000",
-          "name": "Live Reload Server",
-          "request": "launch",
-          "type": "node-terminal"
-        },
-        {
-            "name": "Launch Package",
-            "type": "go",
-            "request": "launch",
-            "mode": "auto",
-            "program": "${workspaceFolder}"
-        }
+      {
+        "name": "Launch Application (Node)",
+        "command": "npm start",
+        "request": "launch",
+        "type": "node-terminal",
+      },
+      {
+        "name": "Launch Application (Go)",
+        "command": "air server --port 8000",
+        "request": "launch",
+        "type": "node-terminal"
+      }
     ]
 }

@@ -1,6 +1,7 @@
 package server
 
 import (
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	database "github.com/joaomarcuslf/qr-generator/database"
 	api "github.com/joaomarcuslf/qr-generator/handlers/api"
@@ -22,6 +23,7 @@ func (a *Server) Run() {
 	defer database.Close()
 
 	router := gin.Default()
+	router.Use(cors.Default())
 
 	router.LoadHTMLGlob("templates/*")
 	router.Static("/static", "./static")

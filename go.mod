@@ -3,13 +3,17 @@ module github.com/joaomarcuslf/qr-generator
 go 1.18
 
 require (
-	github.com/boombuler/barcode v1.0.1 // indirect
+	github.com/boombuler/barcode v1.0.1
+	github.com/gin-gonic/gin v1.8.1
+)
+
+require (
 	github.com/cosmtrek/air v1.40.3 // indirect
 	github.com/creack/pty v1.1.18 // indirect
 	github.com/fatih/color v1.13.0 // indirect
 	github.com/fsnotify/fsnotify v1.5.4 // indirect
+	github.com/gin-contrib/cors v1.4.0 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
-	github.com/gin-gonic/gin v1.8.1 // indirect
 	github.com/go-playground/locales v0.14.0 // indirect
 	github.com/go-playground/universal-translator v0.18.0 // indirect
 	github.com/go-playground/validator/v10 v10.10.0 // indirect

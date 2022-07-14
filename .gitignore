@@ -1,4 +1,9 @@
 qrcode.png
-
 tmp/*
 db.json
+/node_modules
+.pnp*
+/coverage
+/build
+.env.*
+*-debug.log*
