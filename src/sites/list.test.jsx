@@ -14,10 +14,42 @@ describe('<SitesList />', () => {
   })
 
   test('renders an list with multiple elements', () => {
-    const { container } = render(<SitesList data={{sites: [ { URL: "test" }, { URL: "test" } ,{ URL: "test" } ]}} />)
+    const { container } = render(<SitesList data={{sites: [ { url: "test" }, { url: "test" } ,{ url: "test" } ]}} />)
 
-    const element = container.querySelectorAll('li')
+    const element = container.querySelectorAll('.site-item')
 
     expect(element.length).toBe(3)
+  })
+
+  test('delete is called on confirmation', () => {
+    global.confirm = jest.fn(() => true)
+
+    const deleteSite = jest.fn()
+
+    render(<SitesList data={{sites: [ { url: "test" } ]}} handleDelete={deleteSite} />)
+
+    let element = screen.getByText(/Delete/i)
+
+    expect(element).toBeInTheDocument()
+    element.click()
+
+    expect(global.confirm).toHaveBeenCalled()
+    expect(deleteSite).toHaveBeenCalled()
+  })
+
+  test('delete not called if not confirmed', () => {
+    global.confirm = jest.fn(() => false)
+
+    const deleteSite = jest.fn()
+
+    render(<SitesList data={{sites: [ { url: "test" } ]}} handleDelete={deleteSite} />)
+
+    let element = screen.getByText(/Delete/i)
+
+    expect(element).toBeInTheDocument()
+    element.click()
+
+    expect(global.confirm).toHaveBeenCalled()
+    expect(deleteSite).toHaveBeenCalledTimes(0)
   })
 })

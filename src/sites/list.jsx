@@ -1,31 +1,42 @@
 import React from "react";
+import ShowSite from "./show";
 
 const SitesList = (props) => {
-  const { sites = [] } = props?.data || {}
+  const { sites = [] } = props?.data || {};
 
   return (
     <div>
-      <h2>Sites:</h2>
+      <h2 className="is-title">Sites:</h2>
 
       {sites?.length === 0 && <p>No sites</p>}
-      <ul>
-        {sites.map((site, index) => (
-          <li key={`${site.URL}-${site.id}-${index}`}>{site.URL}</li>
-        ))}
-      </ul>
+
+      <div className="columns is-multiline">
+        {sites.map((site, index) => {
+          return (
+            <div className="column is-6 site-item" key={`${site.url}-${site.id}-${index}`}>
+              <ShowSite
+                url={site?.url}
+                id={site?.id}
+                showContent={props.showContent}
+                handleDelete={props.handleDelete}
+                handleEdit={props.handleEdit}
+              />
+            </div>
+          );
+        })}
+      </div>
     </div>
-  )
-}
+  );
+};
 
 SitesList.action = () => {
   return fetch("http://localhost:8000/api/sites", {
-    credentials: "omit",
     headers: {
       "Content-Type": "application/json",
     },
     method: "GET",
     mode: "cors",
-  })
-}
+  });
+};
 
 export default SitesList;

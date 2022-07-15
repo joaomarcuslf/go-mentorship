@@ -36,6 +36,7 @@ func (a *Server) Run() {
 	router.GET("/api/sites", sc.List)
 	router.POST("/api/sites", sc.Create)
 	router.GET("/api/sites/:id", sc.Show)
+	router.GET("/api/sites/:id/qr", sc.ShowQr)
 	router.PUT("/api/sites/:id", sc.Update)
 	router.DELETE("/api/sites/:id", sc.Delete)
 

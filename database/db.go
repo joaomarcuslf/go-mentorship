@@ -9,8 +9,8 @@ import (
 )
 
 type Site struct {
-	URL string
-	Id  string
+	URL string `json:"url"`
+	Id  string `json:"id"`
 }
 
 type DB struct {

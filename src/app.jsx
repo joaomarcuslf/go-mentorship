@@ -1,16 +1,9 @@
-import Fetcher from './fetcher/fetcher'
-import SiteList from './sites/list'
+import HomePage from './pages/home'
 
 function App() {
   return (
     <div className="App">
-      <Fetcher action={SiteList.action}>
-        {(data) => {
-          return (
-            <SiteList data={data} />
-          )
-        }}
-      </Fetcher>
+      <HomePage />
     </div>
   )
 }
